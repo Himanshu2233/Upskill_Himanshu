@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Free URL Shortener — Convert long URLs into short, shareable links instantly.">
+    <title>LinkSnip — URL Shortener</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🔗</span>
+                <span class="logo-text">LinkSnip</span>
+            </div>
+            <p class="tagline">Shorten URLs. Share links. Track clicks.</p>
+        </header>
+
+        <!-- Main Card -->
+        <main class="card">
+
+            {% if short_url %}
+            <div class="result-box">
+                <div class="result-label">✅ Your short link is ready!</div>
+                <div class="result-link-row">
+                    <a href="{{ short_url }}" target="_blank" class="result-link">{{ short_url }}</a>
+                    <button class="copy-btn" id="copyBtn" onclick="copyLink('{{ short_url }}')">📋 Copy</button>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if error %}
+            <div class="error-box">⚠️ {{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="/shorten" class="shorten-form" id="shortenForm">
+                <div class="input-group">
+                    <span class="input-icon">🌐</span>
+                    <input
+                        type="url"
+                        name="original_url"
+                        id="urlInput"
+                        placeholder="Paste your long URL here (https://...)"
+                        class="url-input"
+                        required
+                        autocomplete="off"
+                    >
+                </div>
+                <button type="submit" class="shorten-btn" id="shortenBtn">
+                    <span class="btn-text">⚡ Shorten URL</span>
+                    <span class="btn-loader" style="display:none;">⏳ Shortening...</span>
+                </button>
+            </form>
+
+            <p class="hint">No sign-up required. Free forever.</p>
+        </main>
+
+        <!-- Stats -->
+        <section class="stats-row">
+            <div class="stat-card">
+                <div class="stat-number" id="statUrls">{{ total_urls }}</div>
+                <div class="stat-label">Links Created</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statClicks">{{ total_clicks }}</div>
+                <div class="stat-label">Total Clicks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">Free</div>
+                <div class="stat-label">Always</div>
+            </div>
+        </section>
+
+        <!-- Recent Links Table -->
+        {% if recent %}
+        <section class="recent-section">
+            <h2 class="recent-title">🕒 Recent Links</h2>
+            <div class="table-wrap">
+                <table class="links-table">
+                    <thead>
+                        <tr>
+                            <th>Original URL</th>
+                            <th>Short Link</th>
+                            <th>Clicks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentTableBody">
+                        {% for url in recent %}
+                        <tr>
+                            <td class="original-cell">
+                                <a href="{{ url.original }}" target="_blank" title="{{ url.original }}">
+                                    {{ url.original[:50] }}{% if url.original|length > 50 %}...{% endif %}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{{ request.host_url }}{{ url.short_code }}" target="_blank" class="short-link-cell">
+                                    /{{ url.short_code }}
+                                </a>
+                            </td>
+                            <td class="clicks-cell">
+                                <span class="clicks-badge">{{ url.clicks }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+
+        <footer class="footer">Built with ❤️ using Python &amp; Flask</footer>
+    </div>
+
+    <script>
+        // ── Copy to clipboard ──────────────────────────────────
+        function copyLink(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = '✅ Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '📋 Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        // ── Loading state on form submit ───────────────────────
+        document.getElementById('shortenForm').addEventListener('submit', function() {
+            const btn = document.getElementById('shortenBtn');
+            btn.querySelector('.btn-text').style.display = 'none';
+            btn.querySelector('.btn-loader').style.display = 'inline';
+            btn.disabled = true;
+        });
+
+        // ── AUTO-UPDATE: fetch live stats every 3 seconds ─────
+        // This is called "polling" — we ask the server for fresh data
+        // every 3 seconds and update the page without a full reload.
+
+        function updateStats() {
+            // fetch() sends a GET request to our API endpoint
+            fetch('/api/stats')
+                .then(response => response.json())   // parse the JSON response
+                .then(data => {
+                    // Update the stat numbers on the page
+                    document.getElementById('statUrls').textContent   = data.total_urls;
+                    document.getElementById('statClicks').textContent = data.total_clicks;
+
+                    // Rebuild the recent links table rows
+                    const tbody = document.getElementById('recentTableBody');
+                    if (tbody && data.recent.length > 0) {
+                        tbody.innerHTML = data.recent.map(url => {
+                            // Truncate long URLs for display
+                            const displayUrl = url.original.length > 50
+                                ? url.original.slice(0, 50) + '...'
+                                : url.original;
+                            const shortLink = window.location.origin + '/' + url.short_code;
+                            return `
+                                <tr>
+                                    <td class="original-cell">
+                                        <a href="${url.original}" target="_blank" title="${url.original}">
+                                            ${displayUrl}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <a href="${shortLink}" target="_blank" class="short-link-cell">
+                                            /${url.short_code}
+                                        </a>
+                                    </td>
+                                    <td class="clicks-cell">
+                                        <span class="clicks-badge">${url.clicks}</span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                })
+                .catch(err => console.warn('Stats update failed:', err));
+        }
+
+        // Run immediately when the page loads, then every 3 seconds
+        updateStats();
+        setInterval(updateStats, 3000);   // 3000ms = 3 seconds
+    </script>
+</body>
+</html>
