@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — LinkSnip</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .error-page { text-align: center; padding: 60px 20px; }
+        .error-code { font-size: 8rem; font-weight: 800; background: linear-gradient(135deg, #7c3aed, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+        .error-msg  { font-size: 1.2rem; color: #94a3b8; margin: 16px 0 32px; }
+        .home-btn   { display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #7c3aed, #9333ea); color: white; border-radius: 12px; text-decoration: none; font-weight: 700; transition: transform 0.2s; }
+        .home-btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="container">
+        <div class="error-page card">
+            <div class="error-code">404</div>
+            <p class="error-msg">Oops! That short link doesn't exist or has expired.</p>
+            <a href="/" class="home-btn">🏠 Go Back Home</a>
+        </div>
+    </div>
+</body>
+</html>
